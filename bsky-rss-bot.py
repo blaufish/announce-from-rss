@@ -6,6 +6,7 @@ import atproto_identity
 from atproto import models
 from datetime import datetime, timedelta
 import feedparser
+import html
 import logging
 import os
 import re
@@ -196,6 +197,8 @@ def bsky_posts(client, did):
 def bsky_post(client, candidate, dryrun):
     c_title = candidate.title
     c_description = candidate.description
+    # Convert entities, e.g. &amp; to &
+    c_description = html.unescape( c_description )
     c_desc = re.sub(r"Lyssna mp3, längd: ", "", c_description)
     c_desc = re.sub(r" Innehåll ", " ", c_desc)
     c_uri = candidate.link
