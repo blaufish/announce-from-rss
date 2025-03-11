@@ -31,12 +31,6 @@ def logging_setup(level):
 # Utility functions
 #
 
-def timestruct_to_isoformat(ts):
-    t = time.mktime(ts)
-    dt = datetime.datetime.fromtimestamp(t)
-    iso = dt.isoformat()
-    return iso
-
 def process_rss(url):
     candidates = []
     logger.info(f"Request feed from {url}")
