@@ -77,30 +77,32 @@ def read_secret(secret_argument, secret_type):
             return
     return secret
 
-def xtwitter_posted_urls(api2):
-    user = api2.get_me()
+def xtwitter_decode_url(url):
+    if url.startswith('http://t.co/'):
+        pass
+    elif url.startswith('https://t.co/'):
+        pass
+    else:
+        return url
+    r = requests.get(url, allow_redirects=False)
+    if 'Location' not in r.headers:
+        return url
+    decoded_url = r.headers['Location']
+    return decoded_url
+
+def xtwitter_posted_urls(api2, user_id):
     posts = None
     time.sleep(2) # 429 Too Many Requests
-    #paginator = None
     try:
-        posts = api2.get_users_tweets(id = user.data.id)
-        #paginator = tweepy.Paginator(
-        #        api2.get_users_tweets,
-        #        user.data.id,
-        #        max_results=5, # How many tweets per page
-        #        limit=1)
+        posts = api2.get_users_tweets(id = user_id)
     except Exception as e:
         logger.error(f"api2.get_users_tweets(...): {e}")
         return None
     urls = []
-    #print(posts)
 
-    #for response in paginator:
     for post in posts.data:
         #time.sleep(2) # 429 Too Many Requests
-        #post = response.data
         strpost = str(post)
-        print(f'--> {strpost}')
         words = strpost.split()
         for word in words:
             if word.startswith('https://'):
@@ -109,22 +111,16 @@ def xtwitter_posted_urls(api2):
                 pass
             else:
                 continue
+            if word in urls:
+                continue
             urls.append(word)
-            print(f'  ----> {word}')
     urls2 = []
     for url in urls:
-        if url.startswith('http://t.co/'):
-            pass
-        elif url.startswith('https://t.co/'):
-            pass
-        else:
-            urls2.append(url)
+        decoded_url = xtwitter_decode_url(url)
+        if decoded_url in urls2:
             continue
-        r = requests.get(url, allow_redirects=False)
-        if 'Location' in r.headers:
-            urls2.append(r.headers['Location'])
-        else:
-            urls2.append(url)
+        urls2.append(decoded_url)
+        logger.debug(f'X/Twitter URL {url}: {decoded_url}')
     return urls2
 
 def main():
@@ -214,8 +210,12 @@ def main():
         consumer_secret=consumer_secret
     )
 
-    urls = xtwitter_posted_urls(api2)
-    print(urls)
+    user = api2.get_me()
+    logger.info(f'X/Twitter username: {user.data.username}')
+    logger.info(f'X/Twitter name: {user.data.name}')
+    logger.info(f'X/Twitter idi: {user.data.id}')
+
+    urls = xtwitter_posted_urls(api2, user.data.id)
     if urls is None:
         return
 
