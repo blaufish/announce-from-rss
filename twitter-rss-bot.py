@@ -161,7 +161,7 @@ def main():
             dest = 'secret_type',
             required = True,
             choices = ['arg', 'env', 'file'],
-            help = 'bluesky secret type')
+            help = 'secret type/source')
     #
     # Optional arguments
     #
@@ -184,6 +184,10 @@ def main():
             type=int,
             default = 1,
             help = 'Maximum posts to emit, avoid spamming')
+    parser.add_argument('--test-tweet',
+            dest = 'test_tweet',
+            default = None,
+            help = 'A test tweet, e.g. "hello world testing API"')
 
     # prase
     args = parser.parse_args()
@@ -210,10 +214,21 @@ def main():
         consumer_secret=consumer_secret
     )
 
+    if args.test_tweet is not None:
+        logger.info(f'Tweeting: {args.test_tweet}')
+        time.sleep(2)
+        out = api2.create_tweet(text=args.test_tweet)
+        # Response(data={'edit_history_tweet_ids': ['1899909282633551911'], 'id': '1899909282633551911', 'text': 'Hello! Just testing the API :) Test URL: https://t.co/Ua9iwyKir9'}, includes={}, errors=[], meta={})
+        logger.info(f"Tweet errors: {out.errors}")
+        logger.info(f"Tweet id: {out.data['id']}")
+        logger.info(f"Tweet text: {out.data['text']}")
+        return
+
+    time.sleep(2)
     user = api2.get_me()
     logger.info(f'X/Twitter username: {user.data.username}')
     logger.info(f'X/Twitter name: {user.data.name}')
-    logger.info(f'X/Twitter idi: {user.data.id}')
+    logger.info(f'X/Twitter id: {user.data.id}')
 
     urls = xtwitter_posted_urls(api2, user.data.id)
     if urls is None:
