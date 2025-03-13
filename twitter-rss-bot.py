@@ -90,7 +90,7 @@ def xtwitter_decode_url(url):
     decoded_url = r.headers['Location']
     return decoded_url
 
-def xtwitter_posted_urls(api2, user_id):
+def xtwitter_list_posted_urls(api2, user_id):
     posts = None
     time.sleep(2) # 429 Too Many Requests
     try:
@@ -99,7 +99,6 @@ def xtwitter_posted_urls(api2, user_id):
         logger.error(f"api2.get_users_tweets(...): {e}")
         return None
     urls = []
-
     for post in posts.data:
         #time.sleep(2) # 429 Too Many Requests
         strpost = str(post)
@@ -114,6 +113,9 @@ def xtwitter_posted_urls(api2, user_id):
             if word in urls:
                 continue
             urls.append(word)
+    return urls
+
+def xtwitter_decode_urls(urls):
     urls2 = []
     for url in urls:
         decoded_url = xtwitter_decode_url(url)
@@ -122,6 +124,52 @@ def xtwitter_posted_urls(api2, user_id):
         urls2.append(decoded_url)
         logger.debug(f'X/Twitter URL {url}: {decoded_url}')
     return urls2
+
+def xtwitter_post_raw(api2, text):
+    time.sleep(2)
+    out = api2.create_tweet(text=text)
+    logger.info(f"Tweet errors: {out.errors}")
+    logger.info(f"Tweet id: {out.data['id']}")
+    logger.info(f"Tweet text: {out.data['text']}")
+
+def xtwitter_post(api2, candidate, dryrun):
+    c_title = candidate.title
+    c_description = candidate.description
+
+    # Not needed with X/Twitter?
+    # Convert entities, e.g. &amp; to &
+    #c_description = html.unescape( c_description )
+
+    c_desc = re.sub(r"Lyssna mp3, längd: ", "", c_description)
+    c_desc = re.sub(r" Innehåll ", " ", c_desc)
+    c_uri = candidate.link
+    logger.debug(f"c_title: {c_title}")
+    logger.debug(f"c_description: {c_description}")
+    logger.debug(f"c_desc: {c_desc}")
+    logger.debug(f"c_uri: {c_uri}")
+
+    text = "📣 " + c_title + " 📣 " + c_desc
+
+    c_uri_len = len(c_uri)
+    if c_uri_len > 200:
+        logger.error(f'Insanely long URI causing error: {c_uri}')
+        return
+
+    truncated_len = 240 - 1 - c_uri_len
+    text_truncate = truncate( text, truncated_len )
+    text_final = text_truncate + '\n' + c_uri
+
+    if dryrun:
+        logger.info(f"Dry-run post: {c_uri}")
+    else:
+        logger.info(f"Post: {c_uri}")
+        xtwitter_post_raw(api2, text_final)
+
+def truncate( text, maxlen ):
+    if len(text) < maxlen:
+        return text
+    idx = text.rfind(" ", 0, maxlen-3)
+    return text[:idx] + "..."
 
 def main():
     global threshold
@@ -216,12 +264,7 @@ def main():
 
     if args.test_tweet is not None:
         logger.info(f'Tweeting: {args.test_tweet}')
-        time.sleep(2)
-        out = api2.create_tweet(text=args.test_tweet)
-        # Response(data={'edit_history_tweet_ids': ['1899909282633551911'], 'id': '1899909282633551911', 'text': 'Hello! Just testing the API :) Test URL: https://t.co/Ua9iwyKir9'}, includes={}, errors=[], meta={})
-        logger.info(f"Tweet errors: {out.errors}")
-        logger.info(f"Tweet id: {out.data['id']}")
-        logger.info(f"Tweet text: {out.data['text']}")
+        xtwitter_post_raw(api2, args.test_tweet)
         return
 
     time.sleep(2)
@@ -230,25 +273,8 @@ def main():
     logger.info(f'X/Twitter name: {user.data.name}')
     logger.info(f'X/Twitter id: {user.data.id}')
 
-    urls = xtwitter_posted_urls(api2, user.data.id)
-    if urls is None:
-        return
-
-
-
-    tweeted = []
-    for entry in posts.feed:
-        post = entry.post
-        record = post.record
-        embed = post.embed
-        if embed is None:
-            continue
-        if embed.py_type != 'app.bsky.embed.external#view':
-            continue
-        external = embed.external
-        uri = external.uri
-        tweeted.append(uri)
-        logger.debug(f"Bluesky embeded: {uri}")
+    urls = xtwitter_list_posted_urls(api2, user.data.id)
+    tweeted = xtwitter_decode_urls(urls)
 
     posts = 0
     for candidate in candidates:
@@ -263,59 +289,10 @@ def main():
                 break
         if announce:
             logger.debug(f"Prepare post: {candidate.link}")
-            bsky_post(client, candidate, args.dryrun)
+            xtwitter_post(api2, candidate, args.dryrun)
             posts = posts + 1
 
     logger.info("Terminating normally. Thanks for All the Fish!")
-
-def bsky_lookup(_id):
-    resolver = atproto_identity.handle.resolver.HandleResolver()
-    did = resolver.resolve(_id)
-    return did
-
-def bsky_posts(client, did):
-    responses = client.get_author_feed(
-        actor=did,
-        filter='posts_and_author_threads',
-        limit=30
-        )
-    return responses
-
-def bsky_post(client, candidate, dryrun):
-    c_title = candidate.title
-    c_description = candidate.description
-    # Convert entities, e.g. &amp; to &
-    c_description = html.unescape( c_description )
-    c_desc = re.sub(r"Lyssna mp3, längd: ", "", c_description)
-    c_desc = re.sub(r" Innehåll ", " ", c_desc)
-    c_uri = candidate.link
-    logger.debug(f"c_title: {c_title}")
-    logger.debug(f"c_description: {c_description}")
-    logger.debug(f"c_desc: {c_desc}")
-    logger.debug(f"c_uri: {c_uri}")
-
-    embed_external = models.AppBskyEmbedExternal.Main(
-        external = models.AppBskyEmbedExternal.External(
-            title = c_title,
-            description = c_desc,
-            uri = c_uri,
-            )
-    )
-    text = "📣 " + c_title + " 📣 " + c_desc
-    text300 = truncate( text, 300 )
-    if dryrun:
-        logger.info(f"Dry-run post: {c_uri}")
-    else:
-        logger.info(f"Post: {c_uri}")
-        post = client.send_post( text=text300, embed=embed_external )
-        logger.info(f"post.uri: {post.uri}")
-        logger.info(f"post.cid: {post.cid}")
-
-def truncate( text, maxlen ):
-    if len(text) < maxlen:
-        return text
-    idx = text.rfind(" ", 0, maxlen-3)
-    return text[:idx] + "..."
 
 if __name__ == "__main__":
     main()
