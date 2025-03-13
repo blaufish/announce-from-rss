@@ -191,14 +191,14 @@ def main():
 
     # prase
     args = parser.parse_args()
-
-    #
-    # Set and validate globals
-    #
     logging_setup(args.loglevel)
-    #
-    # Actually run the program
-    #
+
+    # Consume RSS
+    threshold = datetime.now() - timedelta(days=args.days)
+    candidates = process_rss(args.url)
+    if len(candidates) < 1:
+        logger.info(f'No new RSS entries within the last {args.days} day(s), exiting!')
+        return
 
     access_token = read_secret(args.access_token, args.secret_type)
     access_token_secret = read_secret(args.access_token_secret, args.secret_type)
@@ -234,13 +234,6 @@ def main():
     if urls is None:
         return
 
-    threshold = datetime.now() - timedelta(days=args.days)
-
-    candidates = process_rss(args.url)
-
-    if len(candidates) < 1:
-        logger.info("No candiates, exiting")
-        return
 
 
     tweeted = []
