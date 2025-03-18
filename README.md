@@ -11,11 +11,11 @@ but may be inspirational to others
 
 ``` plain
 ./mastodon-rss-bot.py -h
-usage: mastodon-rss-bot.py [-h] --url URL --access-token ACCESS_TOKEN
-                           --client-key CLIENT_KEY --client-secret
-                           CLIENT_SECRET --secret-type {arg,env,file}
+usage: mastodon-rss-bot.py [-h]
+                           --url URL
+                           --access-token ACCESS_TOKEN
+                           --secret-type {arg,env,file}
                            [--api-base-url API_BASE_URL]
-                           [--redirect-uri REDIRECT_URI]
                            [--dry-run | --no-dry-run]
                            [--loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}]
                            [--days DAYS] [--posts POSTS]
@@ -29,17 +29,10 @@ options:
                         https://sakerhetspodcasten.se/index.xml
   --access-token ACCESS_TOKEN
                         "Your access token" in application settings
-  --client-key CLIENT_KEY
-                        "Client key" in application settings
-  --client-secret CLIENT_SECRET
-                        "Client secret" in application settings
   --secret-type {arg,env,file}
                         secret type/source
   --api-base-url API_BASE_URL
                         Default https://mastodon.social
-  --redirect-uri REDIRECT_URI
-                        "Redirect URI" in application settings, default
-                        urn:ietf:wg:oauth:2.0:oob
   --dry-run, --no-dry-run
                         dry-run inhibits posting
   --loglevel {DEBUG,INFO,WARNING,ERROR,CRITICAL}
@@ -66,8 +59,6 @@ Dry-run will not actually post, but will do every other step.
 .venv/bin/python3 mastodon-rss-bot.py \
  --url https://blaufish.github.io/feed.xml \
  --access-token secrets/access_token \
- --client-key secrets/client_key \
- --client-secret secrets/client_secret \
  --secret-type file \
  --days 10 \
  --loglevel DEBUG

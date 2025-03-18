@@ -78,19 +78,6 @@ def read_secret(secret_argument, secret_type):
             return
     return secret
 
-def xtwitter_decode_url(url):
-    if url.startswith('http://t.co/'):
-        pass
-    elif url.startswith('https://t.co/'):
-        pass
-    else:
-        return url
-    r = requests.get(url, allow_redirects=False)
-    if 'Location' not in r.headers:
-        return url
-    decoded_url = r.headers['Location']
-    return decoded_url
-
 def mastodon_list_posted_urls(m, account):
     posts = None
     try:
@@ -120,22 +107,10 @@ def mastodon_list_posted_urls(m, account):
             urls.append(url)
     return urls
 
-def xtwitter_decode_urls(urls):
-    urls2 = []
-    for url in urls:
-        decoded_url = xtwitter_decode_url(url)
-        if decoded_url in urls2:
-            continue
-        urls2.append(decoded_url)
-        logger.debug(f'X/Twitter URL {url}: {decoded_url}')
-    return urls2
-
 def mastodon_post_raw(m, toot):
     out = m.status_post(status=toot)
     logger.info(f"Toot uri: {out['uri']}")
     logger.info(f"Toot text: {out['content']}")
-    #print(out)
-    #print(out.keys())
 
 def mastodon_post(m, candidate, dryrun):
     c_title = candidate.title
@@ -179,7 +154,6 @@ def main():
     global threshold
 
     # Mastodon defaults
-    LOCAL_TEST_REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
     API_BASE_URI = 'https://mastodon.social'
 
     parser = argparse.ArgumentParser(
@@ -197,14 +171,6 @@ def main():
             dest = 'access_token',
             required = True,
             help = '"Your access token" in application settings')
-    parser.add_argument('--client-key',
-            dest = 'client_key',
-            required = True,
-            help = '"Client key" in application settings')
-    parser.add_argument('--client-secret',
-            dest = 'client_secret',
-            required = True,
-            help = '"Client secret" in application settings')
     parser.add_argument('--secret-type',
             dest = 'secret_type',
             required = True,
@@ -217,10 +183,6 @@ def main():
             dest = 'api_base_url',
             default = API_BASE_URI,
             help = f'Default {API_BASE_URI}')
-    parser.add_argument('--redirect-uri',
-            dest = 'redirect_uri',
-            default = LOCAL_TEST_REDIRECT_URI,
-            help = f'"Redirect URI" in application settings, default {LOCAL_TEST_REDIRECT_URI}')
     parser.add_argument('--dry-run',
             dest = 'dryrun',
             default = True,
@@ -257,8 +219,6 @@ def main():
         return
 
     access_token = read_secret(args.access_token, args.secret_type)
-    client_key = read_secret(args.client_key, args.secret_type)
-    client_secret = read_secret(args.client_secret, args.secret_type)
 
     m = Mastodon(
             access_token=args.access_token,
