@@ -157,11 +157,11 @@ def mastodon_post(m, candidate, dryrun):
         return
 
     padding = f'<p></p><p><a href="{c_uri}">{c_uri}</a></p>'
-    padding_length = len(padding)
+    padding_length = len(padding) + 5 # just some additional safety
 
     truncated_len = 500 - padding_length
     text_truncate = truncate( text, truncated_len )
-    text_final = f'<p>{text_truncate}</p><p><a href="{c_uri}">{c_uri}</a></p>'
+    text_final = f'{text_truncate}\n{c_uri}'
 
     if dryrun:
         logger.info(f"Dry-run post: {c_uri}")
