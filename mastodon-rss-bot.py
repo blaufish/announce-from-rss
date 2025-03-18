@@ -3,18 +3,13 @@
 import argparse
 from datetime import datetime, timedelta
 import feedparser
-import html
 import logging
 import mastodon
 from mastodon import Mastodon
 import os
 import re
-import requests
 import time
 
-#
-# Global variables, arguments
-#
 
 threshold = None
 logger = None
@@ -27,9 +22,6 @@ def logging_setup(level):
     FORMAT = '%(asctime)s %(levelname)-s %(message)s'
     logging.basicConfig(format = FORMAT)
 
-#
-# Utility functions
-#
 
 def process_rss(url):
     candidates = []
@@ -41,6 +33,7 @@ def process_rss(url):
         if (candidate):
             candidates.append(entry)
     return candidates
+
 
 def process_entry(e):
     link             = e['link']
@@ -57,6 +50,7 @@ def process_entry(e):
     else:
         logger.debug(f"RSS skipping old entry: {title}")
         return False
+
 
 def read_secret(secret_argument, secret_type):
     if secret_argument == '-':
@@ -77,6 +71,7 @@ def read_secret(secret_argument, secret_type):
             logger.error(f"TODO implement! Unknown secret_type: {secret_type}")
             return
     return secret
+
 
 def mastodon_list_posted_urls(m, account):
     posts = None
@@ -107,10 +102,12 @@ def mastodon_list_posted_urls(m, account):
             urls.append(url)
     return urls
 
+
 def mastodon_post_raw(m, toot):
     out = m.status_post(status=toot)
     logger.info(f"Toot uri: {out['uri']}")
     logger.info(f"Toot text: {out['content']}")
+
 
 def mastodon_post(m, candidate, dryrun):
     c_title = candidate.title
@@ -144,11 +141,13 @@ def mastodon_post(m, candidate, dryrun):
         logger.info(f"Post: {c_uri}")
         mastodon_post_raw(m, text_final)
 
+
 def truncate( text, maxlen ):
     if len(text) < maxlen:
         return text
     idx = text.rfind(" ", 0, maxlen-3)
     return text[:idx] + "..."
+
 
 def main():
     global threshold
@@ -207,11 +206,9 @@ def main():
             default = None,
             help = 'A test toot, e.g. "hello world testing API"')
 
-    # prase
     args = parser.parse_args()
     logging_setup(args.loglevel)
 
-    # Consume RSS
     threshold = datetime.now() - timedelta(days=args.days)
     candidates = process_rss(args.url)
     if len(candidates) < 1:
@@ -235,9 +232,6 @@ def main():
     logger.info(f'Mastodon acct: {user.acct}')
     logger.info(f'Mastodon display name: {user.display_name}')
 
-    #urls = xtwitter_list_posted_urls(api2, user.data.id)
-    #tweeted = xtwitter_decode_urls(urls)
-    #tweeted = []
     tweeted = mastodon_list_posted_urls(m, user)
 
     posts = 0
@@ -257,6 +251,7 @@ def main():
             posts = posts + 1
 
     logger.info("Terminating normally. Thanks for All the Fish!")
+
 
 if __name__ == "__main__":
     main()
