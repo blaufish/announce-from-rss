@@ -5,11 +5,12 @@ from datetime import datetime, timedelta
 import feedparser
 import html
 import logging
+import mastodon
+from mastodon import Mastodon
 import os
 import re
 import requests
 import time
-import tweepy
 
 #
 # Global variables, arguments
@@ -125,14 +126,14 @@ def xtwitter_decode_urls(urls):
         logger.debug(f'X/Twitter URL {url}: {decoded_url}')
     return urls2
 
-def xtwitter_post_raw(api2, text):
-    time.sleep(2)
-    out = api2.create_tweet(text=text)
-    logger.info(f"Tweet errors: {out.errors}")
-    logger.info(f"Tweet id: {out.data['id']}")
-    logger.info(f"Tweet text: {out.data['text']}")
+def mastodon_post_raw(m, toot):
+    out = m.status_post(status=toot)
+    logger.info(f"Toot uri: {out['uri']}")
+    logger.info(f"Toot text: {out['content']}")
+    #print(out)
+    #print(out.keys())
 
-def xtwitter_post(api2, candidate, dryrun):
+def xtwitter_post(m, candidate, dryrun):
     c_title = candidate.title
     c_description = candidate.description
 
@@ -163,7 +164,7 @@ def xtwitter_post(api2, candidate, dryrun):
         logger.info(f"Dry-run post: {c_uri}")
     else:
         logger.info(f"Post: {c_uri}")
-        xtwitter_post_raw(api2, text_final)
+        mastodon_post_raw(m, text_final)
 
 def truncate( text, maxlen ):
     if len(text) < maxlen:
@@ -174,9 +175,13 @@ def truncate( text, maxlen ):
 def main():
     global threshold
 
+    # Mastodon defaults
+    LOCAL_TEST_REDIRECT_URI = 'urn:ietf:wg:oauth:2.0:oob'
+    API_BASE_URI = 'https://mastodon.social'
+
     parser = argparse.ArgumentParser(
-            prog = 'twitter-rss-bot.py',
-            description = 'x/twitter bot',
+            prog = 'mastodon-rss-bot.py',
+            description = 'mastodon bot',
             epilog = 'Hope this help was helpful! :-)')
     #
     # Required arguments
@@ -188,23 +193,15 @@ def main():
     parser.add_argument('--access-token',
             dest = 'access_token',
             required = True,
-            help = 'x/twitter secret')
-    parser.add_argument('--access-token-secret',
-            dest = 'access_token_secret',
+            help = '"Your access token" in application settings')
+    parser.add_argument('--client-key',
+            dest = 'client_key',
             required = True,
-            help = 'x/twitter secret')
-    parser.add_argument('--consumer-key',
-            dest = 'consumer_key',
+            help = '"Client key" in application settings')
+    parser.add_argument('--client-secret',
+            dest = 'client_secret',
             required = True,
-            help = 'x/twitter secret')
-    parser.add_argument('--consumer-secret',
-            dest = 'consumer_secret',
-            required = True,
-            help = 'x/twitter secret')
-    parser.add_argument('--bearer-token',
-            dest = 'bearer_token',
-            required = True,
-            help = 'x/twitter secret')
+            help = '"Client secret" in application settings')
     parser.add_argument('--secret-type',
             dest = 'secret_type',
             required = True,
@@ -213,6 +210,14 @@ def main():
     #
     # Optional arguments
     #
+    parser.add_argument('--api-base-url',
+            dest = 'api_base_url',
+            default = API_BASE_URI,
+            help = f'Default {API_BASE_URI}')
+    parser.add_argument('--redirect-uri',
+            dest = 'redirect_uri',
+            default = LOCAL_TEST_REDIRECT_URI,
+            help = f'"Redirect URI" in application settings, default {LOCAL_TEST_REDIRECT_URI}')
     parser.add_argument('--dry-run',
             dest = 'dryrun',
             default = True,
@@ -232,10 +237,10 @@ def main():
             type=int,
             default = 1,
             help = 'Maximum posts to emit, avoid spamming')
-    parser.add_argument('--test-tweet',
-            dest = 'test_tweet',
+    parser.add_argument('--test-toot',
+            dest = 'test_toot',
             default = None,
-            help = 'A test tweet, e.g. "hello world testing API"')
+            help = 'A test toot, e.g. "hello world testing API"')
 
     # prase
     args = parser.parse_args()
@@ -249,32 +254,27 @@ def main():
         return
 
     access_token = read_secret(args.access_token, args.secret_type)
-    access_token_secret = read_secret(args.access_token_secret, args.secret_type)
-    bearer_token = read_secret(args.bearer_token, args.secret_type)
-    consumer_key = read_secret(args.consumer_key, args.secret_type)
-    consumer_secret = read_secret(args.consumer_secret, args.secret_type)
+    client_key = read_secret(args.client_key, args.secret_type)
+    client_secret = read_secret(args.client_secret, args.secret_type)
 
-    api2 = tweepy.Client(
-        access_token=access_token,
-        access_token_secret=access_token_secret,
-        bearer_token=bearer_token,
-        consumer_key=consumer_key,
-        consumer_secret=consumer_secret
-    )
+    m = Mastodon(
+            access_token=args.access_token,
+            api_base_url=args.api_base_url)
 
-    if args.test_tweet is not None:
-        logger.info(f'Tweeting: {args.test_tweet}')
-        xtwitter_post_raw(api2, args.test_tweet)
+    if args.test_toot is not None:
+        logger.info(f'Tooting: {args.test_toot}')
+        mastodon_post_raw(m, args.test_toot)
         return
 
-    time.sleep(2)
-    user = api2.get_me()
-    logger.info(f'X/Twitter username: {user.data.username}')
-    logger.info(f'X/Twitter name: {user.data.name}')
-    logger.info(f'X/Twitter id: {user.data.id}')
+    #time.sleep(2)
+    #user = api2.get_me()
+    #logger.info(f'X/Twitter username: {user.data.username}')
+    #logger.info(f'X/Twitter name: {user.data.name}')
+    #logger.info(f'X/Twitter id: {user.data.id}')
 
-    urls = xtwitter_list_posted_urls(api2, user.data.id)
-    tweeted = xtwitter_decode_urls(urls)
+    #urls = xtwitter_list_posted_urls(api2, user.data.id)
+    #tweeted = xtwitter_decode_urls(urls)
+    tweeted = []
 
     posts = 0
     for candidate in candidates:
