@@ -91,29 +91,33 @@ def xtwitter_decode_url(url):
     decoded_url = r.headers['Location']
     return decoded_url
 
-def xtwitter_list_posted_urls(api2, user_id):
+def mastodon_list_posted_urls(m, account):
     posts = None
-    time.sleep(2) # 429 Too Many Requests
     try:
-        posts = api2.get_users_tweets(id = user_id)
+        posts = m.account_statuses(account)
     except Exception as e:
-        logger.error(f"api2.get_users_tweets(...): {e}")
+        logger.error(f"m.statuses(...): {e}")
         return None
     urls = []
-    for post in posts.data:
-        #time.sleep(2) # 429 Too Many Requests
-        strpost = str(post)
+    for post in posts:
+        strpost = post.content
         words = strpost.split()
         for word in words:
-            if word.startswith('https://'):
+            url = None
+            if word.startswith('href="http'):
+                sp = word.split('"')
+                url = sp[1]
+            else:
+                continue
+            if url.startswith('https://'):
                 pass
-            elif word.startswith('http://'):
+            elif url.startswith('http://'):
                 pass
             else:
                 continue
-            if word in urls:
+            if url in urls:
                 continue
-            urls.append(word)
+            urls.append(url)
     return urls
 
 def xtwitter_decode_urls(urls):
@@ -133,13 +137,9 @@ def mastodon_post_raw(m, toot):
     #print(out)
     #print(out.keys())
 
-def xtwitter_post(m, candidate, dryrun):
+def mastodon_post(m, candidate, dryrun):
     c_title = candidate.title
     c_description = candidate.description
-
-    # Not needed with X/Twitter?
-    # Convert entities, e.g. &amp; to &
-    #c_description = html.unescape( c_description )
 
     c_desc = re.sub(r"Lyssna mp3, längd: ", "", c_description)
     c_desc = re.sub(r" Innehåll ", " ", c_desc)
@@ -156,9 +156,12 @@ def xtwitter_post(m, candidate, dryrun):
         logger.error(f'Insanely long URI causing error: {c_uri}')
         return
 
-    truncated_len = 240 - 1 - c_uri_len
+    padding = f'<p></p><p><a href="{c_uri}">{c_uri}</a></p>'
+    padding_length = len(padding)
+
+    truncated_len = 500 - padding_length
     text_truncate = truncate( text, truncated_len )
-    text_final = text_truncate + '\n' + c_uri
+    text_final = f'<p>{text_truncate}</p><p><a href="{c_uri}">{c_uri}</a></p>'
 
     if dryrun:
         logger.info(f"Dry-run post: {c_uri}")
@@ -274,7 +277,8 @@ def main():
 
     #urls = xtwitter_list_posted_urls(api2, user.data.id)
     #tweeted = xtwitter_decode_urls(urls)
-    tweeted = []
+    #tweeted = []
+    tweeted = mastodon_list_posted_urls(m, user)
 
     posts = 0
     for candidate in candidates:
@@ -289,7 +293,7 @@ def main():
                 break
         if announce:
             logger.debug(f"Prepare post: {candidate.link}")
-            xtwitter_post(api2, candidate, args.dryrun)
+            mastodon_post(m, candidate, args.dryrun)
             posts = posts + 1
 
     logger.info("Terminating normally. Thanks for All the Fish!")
