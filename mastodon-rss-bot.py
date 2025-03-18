@@ -266,11 +266,11 @@ def main():
         mastodon_post_raw(m, args.test_toot)
         return
 
-    #time.sleep(2)
-    #user = api2.get_me()
-    #logger.info(f'X/Twitter username: {user.data.username}')
-    #logger.info(f'X/Twitter name: {user.data.name}')
-    #logger.info(f'X/Twitter id: {user.data.id}')
+    user = m.me()
+    logger.info(f'Mastodon id: {user.id}')
+    logger.info(f'Mastodon username: {user.username}')
+    logger.info(f'Mastodon acct: {user.acct}')
+    logger.info(f'Mastodon display name: {user.display_name}')
 
     #urls = xtwitter_list_posted_urls(api2, user.data.id)
     #tweeted = xtwitter_decode_urls(urls)
