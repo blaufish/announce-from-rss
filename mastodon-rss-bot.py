@@ -218,7 +218,7 @@ def main():
     access_token = read_secret(args.access_token, args.secret_type)
 
     m = Mastodon(
-            access_token=args.access_token,
+            access_token=access_token,
             api_base_url=args.api_base_url)
 
     if args.test_toot is not None:
