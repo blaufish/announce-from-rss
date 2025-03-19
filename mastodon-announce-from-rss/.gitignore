@@ -1,4 +1,0 @@
-.*.sw?
-.venv/
-local.sh
-secrets/
