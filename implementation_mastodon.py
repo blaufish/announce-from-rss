@@ -8,24 +8,17 @@ class BotImplementationMastodon:
     def __init__(self, config):
         self.config = config
         self.m = None
-        self.enabled = True
         self.posted = []
 
     def startup(self):
-        enabled = utils.read_config(
-                self.config,
-                'mastodon.enabled')
-        if enabled is not None:
-            self.enabled = enabled
-            if enabled is False:
-                utils.logger.info(f'Mastodon bot is disabled....')
-                return
-
-        utils.logger.info(f'Mastodon bot implementation....')
+        utils.logger.info(f'Mastodon bot implementation: startup')
 
         access_token = utils.read_config_secret(
                 self.config,
                 'mastodon.secrets.access_token')
+        if access_token is None:
+            utils.logger.error("Error retrieving: mastodon.secrets.access_token")
+            return False
 
         api_base_url = utils.read_config(
                 self.config,
@@ -39,7 +32,7 @@ class BotImplementationMastodon:
         utils.logger.info(f'Mastodon id: {user.id}')
         utils.logger.info(f'Mastodon username: {user.username}')
         utils.logger.info(f'Mastodon acct: {user.acct}')
-        urils.logger.info(f'Mastodon display name: {user.display_name}')
+        utils.logger.info(f'Mastodon display name: {user.display_name}')
 
         posted = mastodon_list_posted_urls(
                 m,
@@ -47,6 +40,7 @@ class BotImplementationMastodon:
 
         self.m = m
         self.posted = posted
+        return True
 
     def post(rss_entry, dryrun):
         return mastodon_post(
@@ -94,16 +88,13 @@ def mastodon_post_raw(logger, m, toot):
 def mastodon_post(m, candidate, dryrun):
     c_title = candidate.title
     c_description = candidate.description
-
-    c_desc = re.sub(r"Lyssna mp3, längd: ", "", c_description)
-    c_desc = re.sub(r" Innehåll ", " ", c_desc)
     c_uri = candidate.link
+
     utils.logger.debug(f"c_title: {c_title}")
     utils.logger.debug(f"c_description: {c_description}")
-    utils.logger.debug(f"c_desc: {c_desc}")
     utils.logger.debug(f"c_uri: {c_uri}")
 
-    text = "📣 " + c_title + " 📣 " + c_desc
+    text = "📣 " + c_title + " 📣 " + c_description
 
     c_uri_len = len(c_uri)
     if c_uri_len > 200:

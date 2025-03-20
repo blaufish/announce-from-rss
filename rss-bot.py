@@ -3,7 +3,6 @@
 import argparse
 from datetime import datetime, timedelta
 import feedparser
-import os
 import re
 import time
 import yaml
@@ -41,9 +40,35 @@ def process_entry(e):
         utils.logger.debug(f"RSS skipping old entry: {title}")
         return False
 
-def post_loop(implementation, max_posts):
-    implementation.startup()
-    if not implementation.enabled:
+
+def enabled(config, module):
+    configured = utils.read_config(
+            config,
+            module)
+    if configured is None:
+        utils.logger.info(f'Bot implementation {module} not configured.')
+        return False
+    enabled = utils.read_config(
+            config,
+            module + '.enabled')
+    if enabled is not None:
+        if enabled is False:
+            utils.logger.info(f'Bot implementation {module} is disabled.')
+            return False
+    return True
+
+
+def transform_sakerhetspodcasten(candidates):
+    for candidate in candidates:
+        c_desc = candidate.description
+        c_desc = re.sub(r"Lyssna mp3, längd: ", "", c_desc)
+        c_desc = re.sub(r" Innehåll ", " ", c_desc)
+        candidate.description = c_desc
+
+
+def post_loop(implementation, candidates, max_posts):
+    started = implementation.startup()
+    if not started:
         return
 
     posts = 0
@@ -117,13 +142,23 @@ def main():
         utils.logger.info(f'No new RSS entries within the last {args.days} day(s), exiting!')
         return
 
-    impl_m = BotImplementationMastodon(config)
-    implementations = [
-            impl_m,
-            ]
+    transformer = utils.read_config(config, 'transformer')
+    if transformer is not None:
+        match transformer:
+            case 'sakerhetspodcasten':
+                transform_sakerhetspodcasten(candidates)
+            case _:
+                utils.logger.error(f"Unknown transformer: {transformer}.")
+                return
+
+
+    implementations = [ ]
+    if enabled(config, 'mastodon'):
+        impl_m = BotImplementationMastodon(config)
+        implementations.append(impl_m)
 
     for implementation in implementations:
-        post_loop(implementation, args.days)
+        post_loop(implementation, candidates, args.days)
 
     utils.logger.info("Terminating normally. Thanks for All the Fish!")
 
