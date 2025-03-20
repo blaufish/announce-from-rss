@@ -10,6 +10,7 @@ import yaml
 import utils
 from implementation_mastodon import BotImplementationMastodon
 from implementation_bsky import BotImplementationBSky
+from implementation_twitter import BotImplementationTwitter
 
 threshold = None
 
@@ -161,6 +162,10 @@ def main():
     if enabled(config, 'bsky'):
         impl_bsky = BotImplementationBSky(config)
         implementations.append(impl_bsky)
+
+    if enabled(config, 'twitter'):
+        impl_x = BotImplementationTwitter(config)
+        implementations.append(impl_x)
 
     if len(implementations) < 1:
         utils.logger.error('No bot implementations configured?')
