@@ -1,5 +1,6 @@
 .*.sw?
 **/.venv/*
+**/.piptools/*
 **/local*.sh
 __pycache__
 secrets/
