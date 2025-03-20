@@ -42,7 +42,7 @@ class BotImplementationMastodon:
         self.posted = posted
         return True
 
-    def post(rss_entry, dryrun):
+    def post(self, rss_entry, dryrun):
         return mastodon_post(
                 self.m,
                 rss_entry,
@@ -105,7 +105,7 @@ def mastodon_post(m, candidate, dryrun):
     padding_length = len(padding) + 5 # just some additional safety
 
     truncated_len = 500 - padding_length
-    text_truncate = truncate( text, truncated_len )
+    text_truncate = utils.truncate( text, truncated_len )
     text_final = f'{text_truncate}\n{c_uri}'
 
     if dryrun:

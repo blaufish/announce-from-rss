@@ -9,6 +9,7 @@ import yaml
 
 import utils
 from implementation_mastodon import BotImplementationMastodon
+from implementation_bsky import BotImplementationBSky
 
 threshold = None
 
@@ -156,6 +157,14 @@ def main():
     if enabled(config, 'mastodon'):
         impl_m = BotImplementationMastodon(config)
         implementations.append(impl_m)
+
+    if enabled(config, 'bsky'):
+        impl_bsky = BotImplementationBSky(config)
+        implementations.append(impl_bsky)
+
+    if len(implementations) < 1:
+        utils.logger.error('No bot implementations configured?')
+        return
 
     for implementation in implementations:
         post_loop(implementation, candidates, args.days)
