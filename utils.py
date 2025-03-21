@@ -21,6 +21,8 @@ def read_secret(secret_argument, secret_type):
             content = secret_argument
             secret = content.strip()
         case "env":
+            if secret_argument not in os.environ:
+                return None
             content = os.environ[secret_argument]
             secret = content.strip()
         case "file":
