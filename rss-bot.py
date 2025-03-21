@@ -14,9 +14,18 @@ from implementation_twitter import BotImplementationTwitter
 
 threshold = None
 
+class Limits:
+    def __init__(self, max_days, max_posts, dryrun):
+        self.max_days = max_days or 1
+        self.max_posts = max_posts or 1
+        self.dryrun = dryrun
+        if dryrun is None:
+            self.dryrun = True
+
+
 def process_rss(url):
     candidates = []
-    utils.logger.info(f"Request feed from {url}")
+    utils.logger.info(f"Request feed from: {url}")
     rss = feedparser.parse(url)
     entries = rss['entries'];
     for entry in entries:
@@ -68,14 +77,14 @@ def transform_sakerhetspodcasten(candidates):
         candidate.description = c_desc
 
 
-def post_loop(implementation, candidates, max_posts):
+def post_loop(implementation, candidates, limits):
     started = implementation.startup()
     if not started:
         return
 
     posts = 0
     for candidate in candidates:
-        if posts >= max_posts:
+        if posts >= limits.max_posts:
             utils.logger.info(f"Stopping posting after reaching post limit: {posts}")
             break
         announce = True
@@ -86,7 +95,8 @@ def post_loop(implementation, candidates, max_posts):
                 break
         if announce:
             utils.logger.debug(f"Prepare post: {candidate.link}")
-            implementation.post(candidate, args.dryrun)
+            implementation.post(candidate,
+                                limits.dryrun)
             posts = posts + 1
 
 def main():
@@ -102,46 +112,38 @@ def main():
     parser.add_argument('--config',
             dest = 'config',
             required = True,
-            help = 'URL to lib-syn RSS feed, e.g. https://sakerhetspodcasten.se/index.xml')
-    parser.add_argument('--dry-run',
-            dest = 'dryrun',
-            default = True,
-            action = argparse.BooleanOptionalAction,
-            help = 'dry-run inhibits posting')
-    parser.add_argument('--loglevel',
-            dest = 'loglevel',
-            default = 'INFO',
-            choices = ['DEBUG','INFO','WARNING','ERROR','CRITICAL'])
-    parser.add_argument('--days',
-            dest = 'days',
-            type=int,
-            default = 1,
-            help = 'Maximum days back in RSS history to announce')
-    parser.add_argument('--posts',
-            dest = 'posts',
-            type=int,
-            default = None,
-            help = 'Maximum posts to emit, avoid spamming')
+            help = 'Configuration file location')
 
     args = parser.parse_args()
-
-    utils.logging_setup(args.loglevel)
 
     config = None
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
-        utils.logger.debug(f'Configuration loaded: {config}')
+
+    loglevel = utils.read_config(config, 'loglevel')
+    utils.logging_setup(loglevel or 'INFO')
+    utils.logger.debug(f'Configuration loaded: {config}')
 
     url = utils.read_config(config, 'url')
     if url is None:
         utils.logger.error('No "url" to RSS channel in config file!')
         return
 
-    threshold = datetime.now() - timedelta(days=args.days)
+    limits = Limits(
+            utils.read_config(config, 'limits.days'),
+            utils.read_config(config, 'limits.posts'),
+            utils.read_config(config, 'limits.dryrun'))
+
+    if limits.dryrun:
+        utils.logger.info('Dryrun: announcements are inhibbited.')
+    utils.logger.info(f'Limit: max announcements: {limits.max_posts}.')
+    utils.logger.info(f'Limit: max days: {limits.max_days}.')
+
+    threshold = datetime.now() - timedelta(days=limits.max_days)
 
     candidates = process_rss(url)
     if len(candidates) < 1:
-        utils.logger.info(f'No new RSS entries within the last {args.days} day(s), exiting!')
+        utils.logger.info(f'No new RSS entries within the last {limits.max_days} day(s), exiting!')
         return
 
     transformer = utils.read_config(config, 'transformer')
@@ -172,7 +174,7 @@ def main():
         return
 
     for implementation in implementations:
-        post_loop(implementation, candidates, args.days)
+        post_loop(implementation, candidates, limits)
 
     utils.logger.info("Terminating normally. Thanks for All the Fish!")
 
