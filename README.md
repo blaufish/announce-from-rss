@@ -196,3 +196,31 @@ twitter:
     consumer_key: X_CONSUMER_KEY
     consumer_secret: X_CONSUMER_SECRET
 ```
+
+## Build and release tools
+
+* [Dockerfile](Dockerfile) - reproducible builds
+* [build.sh](build.sh) - build using dockkerfile
+* [release.sh](release.sh) - tag script.
+
+Verify possible to build using `podman`:
+
+``` bash
+./build.sh
+```
+
+Build a new release in `podman`, i.e.:
+* build with new `pip` dependencies
+* copy [requirements.lock](requirements.lock)
+  and [requirements.txt](requirements.txt)
+  from image to local directory.
+
+``` bash
+./build.sh release
+```
+
+Tag a new release:
+
+``` bash
+./release.sh
+```

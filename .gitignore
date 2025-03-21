@@ -1,8 +1,9 @@
-.*.sw?
 *.bak
-**/.venv/*
-**/.piptools/*
-**/local*.sh
-**/local*.yaml
-__pycache__
-secrets/
+.*.sw?
+.venv/**
+.piptools/**
+local*.sh
+local*.yaml
+out/**
+__pycache__/**
+secrets/**
