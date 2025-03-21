@@ -1,0 +1,48 @@
+url: https://example.com/feed.xml
+  # RSS channel source
+
+# transformer: sakerhetspodcasten
+  # RSS entry preprocessors.
+  # Leave empty unless there is a transformer implemented that you prefere
+
+loglevel: DEBUG
+  # https://docs.python.org/3/howto/logging.html
+  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+  # Default if commented out is INFO.
+
+limits:
+  days: 3
+    # how old posts will be announced. Default is 1.
+  posts: 1
+    # maximum number of posts to announce. Default is 1.
+  dryrun: true
+    # dryrun: inhibbit posting, just test that configuration is OK.
+    # default is true. Set to false to actually start posting.
+  
+
+secret_type: env
+  # where to obtain secrets from.
+  # plain: secrets are written directly in this file.
+  # env: secrets are obtain from environment variable by reference.
+  # file: secrets are obtained from file by reference.
+
+mastodon:
+  secrets:
+    access_token: M_ACCESS_TOKEN
+    # api_base_uri: https://mastodon.social
+
+bsky:
+  handle: example.bsky.social
+  secrets:
+    password: BLUESKY_APP_PASSWORD
+
+twitter:
+  enabled: false
+  secrets:
+    access_token: X_ACCESS_TOKEN
+    access_token_secret: X_ACCESS_TOKEN_SECRET
+    bearer_token: X_BEARER_TOKEN
+    client_id: X_CLIENT_ID
+    client_secret: X_CLIENT_SECRET
+    consumer_key: X_CONSUMER_KEY
+    consumer_secret: X_CONSUMER_SECRET
