@@ -135,7 +135,7 @@ def main():
             utils.read_config(config, 'limits.dryrun'))
 
     if limits.dryrun:
-        utils.logger.info('Dryrun: announcements are inhibbited.')
+        utils.logger.info('Dryrun: announcements are inhibited.')
     utils.logger.info(f'Limit: max announcements: {limits.max_posts}.')
     utils.logger.info(f'Limit: max days: {limits.max_days}.')
 
