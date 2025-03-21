@@ -26,6 +26,8 @@ def read_secret(secret_argument, secret_type):
             content = os.environ[secret_argument]
             secret = content.strip()
         case "file":
+            if not os.access(secret_argument, os.R_OK):
+                return None
             with open(secret_argument, "r") as f:
                 content = f.read();
                 secret = content.strip()
