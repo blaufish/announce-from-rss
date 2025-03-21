@@ -16,9 +16,8 @@ limits:
   posts: 1
     # maximum number of posts to announce. Default is 1.
   dryrun: true
-    # dryrun: inhibbit posting, just test that configuration is OK.
+    # dryrun: inhibit posting, just test that configuration is OK.
     # default is true. Set to false to actually start posting.
-  
 
 secret_type: env
   # where to obtain secrets from.

@@ -136,13 +136,13 @@ mastodon:
 
 would obtain `mastodon.secrets.access_token` from file `m_access_token.secret.txt`.
 
-## Genetic implementation configurations
+## Generic configurations options
 
 Any implementation will be disabled if:
 
-* No configuration entry.
+* No configuration entry for the implementation.
 * Empty configuration, e.g. `mastodon:` with no more configuration.
-* Disabled configuration.
+* Disabled configuration;
 
 You disable an configuration with `enabled: false`.
 
