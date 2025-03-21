@@ -1,6 +1,7 @@
 import requests
 import time
 import tweepy
+
 import utils
 
 class BotImplementationTwitter:
@@ -12,19 +13,19 @@ class BotImplementationTwitter:
     def startup(self):
         utils.logger.info(f'X/Twitter bot implementation: startup')
 
-        access_token = read_config_secret(
+        access_token = utils.read_config_secret(
                 self.config,
                 'twitter.secrets.access_token')
-        access_token_secret = read_config_secret(
+        access_token_secret = utils.read_config_secret(
                 self.config,
                 'twitter.secrets.access_token_secret')
-        bearer_token = read_config_secret(
+        bearer_token = utils.read_config_secret(
                 self.config,
                 'twitter.secrets.bearer_token')
-        consumer_key = read_config_secret(
+        consumer_key = utils.read_config_secret(
                 self.config,
                 'twitter.secrets.consumer_key')
-        consumer_secret = read_config_secret(
+        consumer_secret = utils.read_config_secret(
                 self.config,
                 'twitter.secrets.consumer_secret')
 
@@ -60,6 +61,9 @@ class BotImplementationTwitter:
         utils.logger.info(f'X/Twitter id: {user.data.id}')
 
         urls = xtwitter_list_posted_urls(api2, user.data.id)
+        if urls is None:
+            return False
+
         posted = xtwitter_decode_urls(urls)
 
         self.api2 = api2
@@ -92,8 +96,11 @@ def xtwitter_list_posted_urls(api2, user_id):
     time.sleep(2) # 429 Too Many Requests
     try:
         posts = api2.get_users_tweets(id = user_id)
+    except tweepy.errors.HTTPException as e:
+        logHTTPException('get_users_tweets', e)
+        return None
     except Exception as e:
-        logger.error(f"api2.get_users_tweets(...): {e}")
+        utils.logger.error(f'get_users_tweets: {e}')
         return None
     urls = []
     for post in posts.data:
@@ -113,6 +120,14 @@ def xtwitter_list_posted_urls(api2, user_id):
     return urls
 
 
+def logHTTPException(cause, e):
+    for api_code in e.api_codes:
+        utils.logger.error(f'{cause} code: {api_code}')
+    for api_error in e.api_errors:
+        utils.logger.error(f'{cause} error: {api_error}')
+    for api_message in e.api_messages:
+        utils.logger.error(f'{cause} message: {api_message}')
+
 def xtwitter_decode_urls(urls):
     urls2 = []
     for url in urls:
@@ -120,16 +135,16 @@ def xtwitter_decode_urls(urls):
         if decoded_url in urls2:
             continue
         urls2.append(decoded_url)
-        logger.debug(f'X/Twitter URL {url}: {decoded_url}')
+        utils.logger.debug(f'X/Twitter URL {url}: {decoded_url}')
     return urls2
 
 
 def xtwitter_post_raw(api2, text):
     time.sleep(2)
     out = api2.create_tweet(text=text)
-    logger.info(f"Tweet errors: {out.errors}")
-    logger.info(f"Tweet id: {out.data['id']}")
-    logger.info(f"Tweet text: {out.data['text']}")
+    utils.logger.info(f"Tweet errors: {out.errors}")
+    utils.logger.info(f"Tweet id: {out.data['id']}")
+    utils.logger.info(f"Tweet text: {out.data['text']}")
 
 
 def xtwitter_post(api2, candidate, dryrun):
@@ -137,15 +152,15 @@ def xtwitter_post(api2, candidate, dryrun):
     c_description = candidate.description
     c_uri = candidate.link
 
-    logger.debug(f"c_title: {c_title}")
-    logger.debug(f"c_description: {c_description}")
-    logger.debug(f"c_uri: {c_uri}")
+    utils.logger.debug(f"c_title: {c_title}")
+    utils.logger.debug(f"c_description: {c_description}")
+    utils.logger.debug(f"c_uri: {c_uri}")
 
     text = "📣 " + c_title + " 📣 " + c_description
 
     c_uri_len = len(c_uri)
     if c_uri_len > 200:
-        logger.error(f'Insanely long URI causing error: {c_uri}')
+        utils.logger.error(f'Insanely long URI causing error: {c_uri}')
         return
 
     truncated_len = 240 - 1 - c_uri_len
@@ -153,7 +168,7 @@ def xtwitter_post(api2, candidate, dryrun):
     text_final = text_truncate + '\n' + c_uri
 
     if dryrun:
-        logger.info(f"Dry-run post: {c_uri}")
+        utils.logger.info(f"Dry-run post: {c_uri}")
     else:
-        logger.info(f"Post: {c_uri}")
+        utils.logger.info(f"Post: {c_uri}")
         xtwitter_post_raw(api2, text_final)
