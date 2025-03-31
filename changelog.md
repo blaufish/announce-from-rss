@@ -1,5 +1,7 @@
 # v0.0.1
 
+> Integrating BlueSky, Mastodon, X/Twitter in one code base.
+
 Files:
 ``` plain
 R100	bluesky-announce-from-rss/.gitattributes	.gitattributes
@@ -68,6 +70,8 @@ Commits:
 ```
 
 # v0.0.0
+
+> Integrating three old repos into one.
 
 Commits:
 ``` plain
