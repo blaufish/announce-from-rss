@@ -79,7 +79,7 @@ def mastodon_list_posted_urls(m, account):
     return urls
 
 
-def mastodon_post_raw(logger, m, toot):
+def mastodon_post_raw(m, toot):
     out = m.status_post(status=toot)
     utils.logger.info(f"Toot uri: {out['uri']}")
     utils.logger.info(f"Toot text: {out['content']}")
